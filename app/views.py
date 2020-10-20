@@ -1,4 +1,4 @@
-from app import app, db
+from app import app, db, bp
 import string
 import random
 from app.models import Url
@@ -6,16 +6,16 @@ from app.schemas import UrlSchema
 from flask import flash, redirect, url_for, request, jsonify
 from marshmallow import ValidationError
 
-@app.route('/')
-@app.route('/index', methods = ['GET'])
+@bp.route('/')
+@bp.route('/index', methods = ['GET'])
 def index():
     menu1 = '1)localhost:5000/long_to_short - send the long_url with request and get back the short version'
     menu2 = '2)localhost:5000/<short_postfix> - redirect to long_url comparing with short version'
     menu3 = '3)localhost:5000/statistics/<short_postfix> - get the counting of transition to short_url'
-    return jsonify(op1=menu1,op2=menu2,op3=menu3)
+    return jsonify(op1=menu1,op2=menu2,op3=menu3), 200
 
 
-@app.route('/long_to_short', methods = ['POST'])
+@bp.route('/long_to_short', methods = ['POST'])
 def create_short_url():
     json_data = request.get_json()
     if not json_data:
@@ -34,7 +34,7 @@ def create_short_url():
 
 
 
-@app.route('/<short_postfix>/', methods = ['GET'])
+@bp.route('/<short_postfix>/', methods = ['GET'])
 def short_postfix(short_postfix):
     link = Url.query.filter_by(short_url = short_postfix).first()
     if link == None:
@@ -45,8 +45,11 @@ def short_postfix(short_postfix):
     return redirect(link.long_url)
 
 
-@app.route('/statistics/<short_postfix>/', methods = ['GET'])
+@bp.route('/statistics/<short_postfix>/', methods = ['GET'])
 def counter(short_postfix):
     link = Url.query.filter_by(short_url=short_postfix).first()
-    return jsonify(count=link.count)
+    if link == None:
+        flash('There is no long URL for ' + short_postfix)
+        return redirect(url_for('index'))
+    return jsonify(count=link.count), 201
 
